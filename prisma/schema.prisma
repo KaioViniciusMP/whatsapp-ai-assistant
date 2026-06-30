@@ -1,0 +1,22 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  groupId    String
+  groupName  String
+  authorId   String
+  authorName String
+  message    String
+  timestamp  DateTime
+
+  createdAt  DateTime @default(now())
+
+  @@index([groupId, timestamp])
+}

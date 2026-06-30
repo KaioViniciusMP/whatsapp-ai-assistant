@@ -1,13 +1,14 @@
 import pkg from "whatsapp-web.js";
 import qrcode from "qrcode-terminal";
 import { mapToGroupMessage } from "./message.mapper.js";
+import type { MessageRepository } from "../../repositories/message.repository.js";
 
 const { Client, LocalAuth } = pkg;
 
 export class WhatsAppClient {
   private client: pkg.Client;
 
-  constructor() {
+  constructor(private readonly messageRepository: MessageRepository) {
     this.client = new Client({
       authStrategy: new LocalAuth(),
     });
@@ -40,7 +41,15 @@ export class WhatsAppClient {
         return;
       }
 
-      console.log("📩 Nova mensagem de grupo:", groupMessage);
+      try {
+        await this.messageRepository.save(groupMessage);
+        console.log("💾 Mensagem salva:", {
+          group: groupMessage.groupName,
+          author: groupMessage.authorName,
+        });
+      } catch (error) {
+        console.error("❌ Erro ao salvar mensagem:", error);
+      }
     });
   }
 
