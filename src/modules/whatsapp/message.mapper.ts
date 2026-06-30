@@ -13,14 +13,28 @@ export async function mapToGroupMessage(message: Message): Promise<GroupMessage 
     return null;
   }
 
-  const chat = await message.getChat();
-  const contact = await message.getContact();
+  let groupName = chatId;
+  let authorName = message.author ?? message.from;
+
+  try {
+    const chat = await message.getChat();
+    groupName = chat.name;
+  } catch (error) {
+    console.warn("⚠️ Não foi possível obter o nome do grupo:", error);
+  }
+
+  try {
+    const contact = await message.getContact();
+    authorName = contact.pushname || contact.number;
+  } catch (error) {
+    console.warn("⚠️ Não foi possível obter o contato do autor:", error);
+  }
 
   return {
     groupId: chatId,
-    groupName: chat.name,
+    groupName,
     authorId: message.author ?? message.from,
-    authorName: contact.pushname || contact.number,
+    authorName,
     message: message.body,
     timestamp: new Date(message.timestamp * 1000),
   };

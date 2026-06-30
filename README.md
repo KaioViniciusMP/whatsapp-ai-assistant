@@ -17,20 +17,17 @@ O projeto segue uma arquitetura em camadas inspirada em Clean Architecture, sepa
 ```
 src/
 ├── config/          # Carregamento e validação de variáveis de ambiente
-├── database/        # Configuração do cliente Prisma
+├── database/        # Configuração do cliente Prisma (singleton)
 ├── modules/
-│   ├── whatsapp/    # Conexão, autenticação e listener de mensagens
+│   ├── whatsapp/    # Conexão, autenticação, listener e mapper de mensagens
 │   ├── ai/          # Interface IAProvider e implementações (Gemini, OpenAI, etc.)
-│   ├── summary/     # Casos de uso: gerar resumo, tópicos, tarefas
 │   └── commands/    # Parser de comandos (/resumo, /topicos, /tarefas)
-├── services/        # Serviços de aplicação (orquestram módulos)
-├── repositories/    # Acesso a dados (MessageRepository)
-├── prompts/         # Arquivos de prompt separados por funcionalidade
-├── utils/           # Helpers utilitários
-├── types/           # Tipos e interfaces globais
-├── jobs/            # Agendamentos com node-cron
-├── app.ts           # Composição da aplicação (wiring de dependências)
-└── server.ts        # Entrypoint
+├── services/        # Serviços de aplicação (SummaryService)
+├── repositories/    # Acesso a dados (MessageRepository, SummaryRepository)
+├── prompts/         # Prompts separados por funcionalidade (summary, topics, tasks)
+├── types/           # Tipos e interfaces globais (GroupMessage, AnalysisResult)
+├── jobs/            # Agendamentos com node-cron (resumo diário/semanal)
+└── server.ts        # Entrypoint e wiring de dependências
 ```
 
 ---
@@ -132,14 +129,37 @@ npm run build
 
 ## Roadmap
 
+**Fase 1 — Fundação**
 - [x] Setup Node.js + TypeScript + ESLint + Prettier
-- [ ] Conexão com WhatsApp via QR Code
-- [ ] Filtro e persistência de mensagens de grupo (SQLite + Prisma)
-- [ ] Interface `IAProvider` + implementação `GeminiProvider`
-- [ ] Prompts separados por funcionalidade
-- [ ] Comandos `/resumo`, `/topicos`, `/tarefas`
-- [ ] Agendamentos com node-cron (resumo diário/semanal)
+- [x] Estrutura de pastas em camadas (config, services, repositories, etc.)
+- [x] Carregamento e validação de variáveis de ambiente com dotenv
+
+**Fase 2 — WhatsApp**
+- [x] Conexão com WhatsApp via QR Code (whatsapp-web.js + LocalAuth)
+- [x] Filtro de mensagens de grupo e extração de campos (groupId, authorName, etc.)
+- [x] Tratamento de erros resiliente no mapper (getChat/getContact com fallback)
+
+**Fase 3 — Persistência**
+- [x] Prisma + SQLite com schema versionado e migrations
+- [x] `MessageRepository` (salvar e buscar por grupo/período)
+- [x] `SummaryRepository` (persistir resultados das análises)
+- [x] Injeção de dependência do repositório no cliente WhatsApp
+
+**Fase 4 — IA**
+- [x] Interface `IAProvider` com contrato `generate(prompt): Promise<string>`
+- [x] `GeminiProvider` com `gemini-2.5-flash`
+- [x] Prompts separados por funcionalidade (`summary`, `topics`, `tasks`)
+
+**Fase 5 — Comandos**
+- [x] Parser de comandos com tipo discriminado (`/resumo`, `/resumo Nd`, `/topicos`, `/tarefas`)
+- [x] `SummaryService` com `runAnalysis()` genérico para os três tipos de análise
+- [x] Fluxo completo: buscar mensagens → montar prompt → chamar IA → responder no grupo
+
+**Fase 6 — Polimento (em andamento)**
+- [ ] Agendamentos com node-cron (resumo diário/semanal configurável via `.env`)
 - [ ] Logs estruturados
+
+**Futuro**
 - [ ] RAG com banco vetorial
 - [ ] Memória de longo prazo
 - [ ] MCP (Model Context Protocol)
@@ -161,13 +181,27 @@ npm run build
 
 | Campo | Tipo | Descrição |
 |---|---|---|
-| `id` | String | Identificador único |
+| `id` | String | Identificador único (UUID) |
 | `groupId` | String | ID do grupo no WhatsApp |
 | `groupName` | String | Nome do grupo |
 | `authorId` | String | ID do autor |
 | `authorName` | String | Nome do autor |
 | `message` | String | Conteúdo da mensagem |
 | `timestamp` | DateTime | Data e hora da mensagem |
+| `createdAt` | DateTime | Data de inserção no banco |
+
+**Tabela `Summary`**
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `id` | String | Identificador único (UUID) |
+| `groupId` | String | ID do grupo no WhatsApp |
+| `groupName` | String | Nome do grupo |
+| `type` | String | Tipo da análise (`resumo`, `topicos`, `tarefas`) |
+| `content` | String | Resultado gerado pelo LLM |
+| `periodDays` | Int | Período analisado em dias |
+| `periodSince` | DateTime | Data de início do período analisado |
+| `createdAt` | DateTime | Data de geração da análise |
 
 ---
 
