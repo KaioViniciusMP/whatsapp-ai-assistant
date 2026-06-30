@@ -2,7 +2,8 @@ import type { Message } from "whatsapp-web.js";
 import type { GroupMessage } from "../../types/group-message.js";
 
 export async function mapToGroupMessage(message: Message): Promise<GroupMessage | null> {
-  const isGroup = message.from.endsWith("@g.us");
+  const chatId = message.fromMe ? message.to : message.from;
+  const isGroup = chatId.endsWith("@g.us");
 
   if (!isGroup) {
     return null;
@@ -16,7 +17,7 @@ export async function mapToGroupMessage(message: Message): Promise<GroupMessage 
   const contact = await message.getContact();
 
   return {
-    groupId: message.from,
+    groupId: chatId,
     groupName: chat.name,
     authorId: message.author ?? message.from,
     authorName: contact.pushname || contact.number,
