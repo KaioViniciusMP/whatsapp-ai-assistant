@@ -1,1 +1,3 @@
-console.log("Servidor iniciado com sucesso 🚀");
+import { env } from "./config/env.js";
+
+console.log("Configuração carregada:", env);
