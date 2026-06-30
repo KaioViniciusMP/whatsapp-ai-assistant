@@ -1,5 +1,6 @@
 import pkg from "whatsapp-web.js";
 import qrcode from "qrcode-terminal";
+import { mapToGroupMessage } from "./message.mapper.js";
 
 const { Client, LocalAuth } = pkg;
 
@@ -32,12 +33,14 @@ export class WhatsAppClient {
       console.warn("⚠️ WhatsApp desconectado:", reason);
     });
 
-    this.client.on("message", (message) => {
-      console.log("📩 Nova mensagem recebida:", {
-        from: message.from,
-        body: message.body,
-        isGroup: message.from.endsWith("@g.us"),
-      });
+    this.client.on("message", async (message) => {
+      const groupMessage = await mapToGroupMessage(message);
+
+      if (!groupMessage) {
+        return;
+      }
+
+      console.log("📩 Nova mensagem de grupo:", groupMessage);
     });
   }
 
