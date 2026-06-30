@@ -20,3 +20,16 @@ model Message {
 
   @@index([groupId, timestamp])
 }
+
+model Summary {
+  id          String   @id @default(uuid())
+  groupId     String
+  groupName   String
+  type        String
+  content     String
+  periodDays  Int
+  periodSince DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([groupId, createdAt])
+}
